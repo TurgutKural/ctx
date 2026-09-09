@@ -194,7 +194,7 @@ plugin logs one warning per provider instance — no error, no blocked
 compaction.
 
 Contract tests ship on both sides: host-side upstream in
-`tests/agent/test_pre_compress_checkpoint_contract.py` (17 tests on `main`)
+`tests/agent/test_pre_compress_checkpoint_contract.py` (22 tests on `main`, 2026-09)
 and provider-side here in `plugin/ctx_checkpoint/tests/` (32 tests, mocked
 MCP dispatch — no live ctx needed): `test_provider_contract.py` (9) covers
 the checkpoint chain, `test_contract_negotiation.py` (23) the runtime
