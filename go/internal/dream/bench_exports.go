@@ -20,6 +20,15 @@ func BenchBuildTemporalReviewPrompt(block *BlockInfo) string {
 	return buildTemporalReviewPrompt(block)
 }
 
+// BenchParseTemporalReview parst eine Phase-2-Antwort wie die dream-temporal-
+// Pipeline (validate_temporal.go, parseTemporalReview) — inklusive der
+// Fence-Toleranz über llm.StripJSONFence. Der Harness darf diese Antwort nicht
+// selbst dekodieren: eine eigene Kopie driftet, sobald der Produktions-Parser
+// sich ändert (so geschehen mit der Fence-Toleranz, entdeckt 2026-09-18).
+func BenchParseTemporalReview(raw string) (*TemporalReview, error) {
+	return parseTemporalReview(raw)
+}
+
 // BenchKeywordSystemPrompt liefert den System-Prompt der dream-keywords-
 // Pipeline (keywords.go:35).
 func BenchKeywordSystemPrompt() string { return keywordSystemPrompt }

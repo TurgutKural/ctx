@@ -48,9 +48,9 @@ func axisTemporalBlock() axisDef {
 }
 
 // scoreTemporalBlock: Set-F1 der Datumswerte gegen gold.dates, micro-aggregiert.
-// Parse wie das Original: strikter json.Unmarshal in TemporalReview
-// (validate_temporal.go:159), Datumswerte per time.Parse validiert und
-// nicht-parsebare Einträge übersprungen (validate_temporal.go:167-171).
+// Parse über den Produktions-Parser (dream.BenchParseTemporalReview →
+// parseTemporalReview, inkl. Fence-Toleranz), Datumswerte per time.Parse
+// validiert und nicht-parsebare Einträge übersprungen wie in ValidateTemporal.
 func scoreTemporalBlock(runs []caseRun) (AxisResult, []CaseScore) {
 	var tp, fp, fn, parsed int
 	perCase := make([]CaseScore, 0, len(runs))
@@ -62,9 +62,9 @@ func scoreTemporalBlock(runs []caseRun) (AxisResult, []CaseScore) {
 			goldSet[d] = true
 		}
 
-		var review dream.TemporalReview
 		cs := CaseScore{ID: r.c.ID}
-		if err := json.Unmarshal([]byte(strings.TrimSpace(firstOutput(r))), &review); err != nil {
+		review, err := dream.BenchParseTemporalReview(firstOutput(r))
+		if err != nil {
 			// Parse-Fehler: alle Gold-Daten fehlen (FN), keine Prädiktionen.
 			fn += len(goldSet)
 			perCase = append(perCase, cs)

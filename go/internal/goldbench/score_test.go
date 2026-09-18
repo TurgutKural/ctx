@@ -84,6 +84,28 @@ func TestScoreTemporalBlock(t *testing.T) {
 	almostEqual(t, res.PrimaryScore, 0.5, "micro f1")
 }
 
+// TestScoreTemporalBlockFenceTolerance hält die Mock-Treue zur Produktion fest:
+// dream.parseTemporalReview entfernt Markdown-Fences (llm.StripJSONFence), also
+// muss die Bench-Achse eine eingezäunte Antwort genauso annehmen. Ein strikter
+// json.Unmarshal an dieser Stelle hat NVFP4-Modelle, die rund 18 % ihrer
+// Antworten einzäunen, um 0.08 Achsen-Score zu schlecht gemessen (2026-09-18).
+func TestScoreTemporalBlockFenceTolerance(t *testing.T) {
+	const body = `{"dates":[{"date":"2026-07-25","source":"explicit"}],"directions":[],"false_positives":[]}`
+	runs := []caseRun{
+		mkRun(t, "json-fence", `{}`, `{"dates":["2026-07-25"]}`, "```json\n"+body+"\n```"),
+		mkRun(t, "bare-fence", `{}`, `{"dates":["2026-07-25"]}`, "```\n"+body+"\n```"),
+		mkRun(t, "plain", `{}`, `{"dates":["2026-07-25"]}`, body),
+	}
+	res, per := scoreTemporalBlock(runs)
+	almostEqual(t, res.ParseRate, 1.0, "parse rate fenced")
+	almostEqual(t, res.PrimaryScore, 1.0, "micro f1 fenced")
+	for _, c := range per {
+		if !c.Parsed || c.Score != 1 {
+			t.Fatalf("case %s: parsed=%v score=%v, want parsed with score 1", c.ID, c.Parsed, c.Score)
+		}
+	}
+}
+
 func TestScoreTemporalQueryEmptyGold(t *testing.T) {
 	runs := []caseRun{
 		// Leermengen-Korrektheit: gold leer, Output leer → Treffer.
