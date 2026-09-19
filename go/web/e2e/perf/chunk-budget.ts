@@ -18,27 +18,18 @@
 //    FAIL: precompression is broken, the Go handler would fall back to raw.
 //  - Budgets/verdicts hold only for in-container builds (brotli output is
 //    toolchain-version-sensitive) — see chunk-budget.json _doc.
+//
+// The verdict RULES live in budget-rules.ts (pure, unit-tested); this file is
+// the IO half: walk dist/, measure, print, exit.
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { join, relative } from 'node:path'
-
-interface Budget {
-  calibrated: boolean
-  raw_threshold_bytes: number
-  total_transfer_bytes: number
-  defaults: { js_br_bytes: number; css_br_bytes: number }
-  overrides: Record<string, number>
-}
+import { evaluateBudget, type ArtifactMeasurement, type Budget } from './budget-rules'
 
 const webRoot = new URL('../..', import.meta.url).pathname
 const distDir = join(webRoot, 'dist')
 const budgetPath = new URL('./chunk-budget.json', import.meta.url).pathname
 const budget = JSON.parse(readFileSync(budgetPath, 'utf8')) as Budget
-
-/** Strip the 8-char vite content hash: `GraphPage-Cr0MwOqk.js` -> `GraphPage.js`. */
-function stemOf(name: string): string {
-  return name.replace(/-[A-Za-z0-9_-]{8}(?=\.(?:js|css)$)/, '')
-}
 
 function walk(dir: string): string[] {
   const out: string[] = []
@@ -50,66 +41,33 @@ function walk(dir: string): string[] {
   return out
 }
 
-const failures: string[] = []
-const warnings: string[] = []
-
 if (!existsSync(distDir)) {
   console.error('chunk-budget: dist/ missing — run `bun run build` first (release build, no VITE_E2E)')
   process.exit(1)
 }
 
-const artifacts = walk(distDir)
+const files = walk(distDir)
   .filter((p) => /\.(?:js|css)$/.test(p))
   .sort()
 
-if (artifacts.length === 0) {
+if (files.length === 0) {
   console.error('chunk-budget: no js/css artifacts under dist/ — run `bun run build` first')
   process.exit(1)
 }
 
-let total = 0
-const seenStems = new Set<string>()
-const rows: string[] = []
-
-for (const file of artifacts) {
-  const rel = relative(distDir, file)
-  const rawSize = statSync(file).size
+const artifacts: ArtifactMeasurement[] = files.map((file) => {
   const brPath = `${file}.br`
-  const hasBr = existsSync(brPath)
-  const served = hasBr ? statSync(brPath).size : rawSize
-  const stem = stemOf(rel.split('/').pop() as string)
-  seenStems.add(stem)
-  total += served
-
-  if (!hasBr && rawSize >= budget.raw_threshold_bytes) {
-    failures.push(
-      `${rel}: ${rawSize} B raw with NO .br sibling (threshold ${budget.raw_threshold_bytes}) — precompression broken`,
-    )
-    continue
+  return {
+    rel: relative(distDir, file),
+    rawSize: statSync(file).size,
+    brSize: existsSync(brPath) ? statSync(brPath).size : null,
   }
+})
 
-  const limit =
-    budget.overrides[stem] ?? (stem.endsWith('.css') ? budget.defaults.css_br_bytes : budget.defaults.js_br_bytes)
-  const kind = hasBr ? 'br' : 'raw'
-  rows.push(`  ${rel} (${stem}): ${served} B ${kind} / limit ${limit}`)
-  if (served > limit) {
-    failures.push(`${rel}: ${served} B ${kind} exceeds budget ${limit} B for '${stem}'`)
-  }
-}
-
-for (const key of Object.keys(budget.overrides)) {
-  if (!seenStems.has(key)) {
-    warnings.push(`stale override '${key}': no matching chunk in dist/ (renamed or removed — clean up the budget)`)
-  }
-}
-
-if (total > budget.total_transfer_bytes) {
-  failures.push(`transfer total ${total} B exceeds total_transfer_bytes ${budget.total_transfer_bytes} B`)
-}
+const { failures, rows, total } = evaluateBudget(artifacts, budget)
 
 console.log(`chunk-budget: ${artifacts.length} artifacts, transfer total ${total} B / limit ${budget.total_transfer_bytes} B`)
 if (process.env.CTX_BUDGET_VERBOSE) for (const r of rows) console.log(r)
-for (const w of warnings) console.warn(`chunk-budget WARN: ${w}`)
 
 if (failures.length > 0) {
   console.error(`chunk-budget: ${failures.length} violation(s):`)

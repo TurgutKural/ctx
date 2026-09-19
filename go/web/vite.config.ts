@@ -69,6 +69,8 @@ export default defineConfig({
     // e2e/contract/ carries the COVERAGE.md drift gate (design 06 §3.4, PV4) —
     // registry/coverage are pure data modules, no Playwright runtime is invoked.
     environment: 'node',
-    include: ['src/**/*.test.ts', 'tokens/**/*.test.ts', 'e2e/contract/**/*.test.ts'],
+    // e2e/perf/ carries the byte-budget RULES (budget-rules.ts) — pure
+    // functions over measurements, no dist/ and no browser needed.
+    include: ['src/**/*.test.ts', 'tokens/**/*.test.ts', 'e2e/contract/**/*.test.ts', 'e2e/perf/**/*.test.ts'],
   },
 })
