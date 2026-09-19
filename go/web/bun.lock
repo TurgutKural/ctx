@@ -9,7 +9,7 @@
         "@cosmos.gl/graph": "3.4.1",
         "@deck.gl/core": "9.3.11",
         "@deck.gl/layers": "9.3.11",
-        "@sigma/edge-curve": "^3.1.0",
+        "@sigma/edge-curve": "3.1.0",
         "three": "0.186.0",
       },
       "devDependencies": {
