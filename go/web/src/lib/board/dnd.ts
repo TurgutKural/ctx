@@ -5,7 +5,7 @@
 // single board-component change. Everything the board touches goes through
 // BoardDndAdapter + the two Svelte actions below.
 //
-// Library = @atlaskit/pragmatic-drag-and-drop 2.0.1 CORE only (U00 decision E11,
+// Library = @atlaskit/pragmatic-drag-and-drop 3.1.0 CORE only (U00 decision E11,
 // spike-dnd.md). No auto-scroll / hitbox extras: v1 drop is COLUMN-LEVEL (a drop
 // anywhere on a column is a status change, E04-3 — no intra-column ordering), so
 // the pointer never needs to reach a precise row and the auto-scroll addon is
