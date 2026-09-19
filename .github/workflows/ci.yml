@@ -928,6 +928,17 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Supply-Chain (Sweep 2026-09-19): das publizierte Image trug zwar die
+          # BuildKit-Provenance im Default-Modus, aber KEINE SBOM
+          # (`imagetools inspect --format '{{json .SBOM}}'` → {}). sbom: true hängt
+          # die SPDX-Stückliste als Attestation an das Manifest; mode=max nimmt
+          # Build-Argumente und die aufgelösten Basis-Digests in die Provenance
+          # auf — zusammen mit den Digest-Pins im Dockerfile ist damit belegbar,
+          # woraus ein Release-Image gebaut wurde. Beides sind unsignierte
+          # BuildKit-Attestations; Sigstore-signierte bräuchten id-token/
+          # attestations-Rechte, die dieser Job bewusst nicht hat.
+          sbom: true
+          provenance: mode=max
           cache-from: |
             type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
             type=gha
