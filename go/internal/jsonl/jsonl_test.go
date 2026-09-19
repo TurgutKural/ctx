@@ -199,18 +199,43 @@ func TestMaxLineMatchesScanner(t *testing.T) {
 // terminalen CR; TrimCR(true) ist die bufio.ScanLines-Form. Sichtbar wird der
 // Unterschied nur an einer KAPUTTEN Zeile, deren letztes Byte das CR ist:
 // encoding/json beschwert sich dann verschieden.
+//
+// Der Test nagelt die FehlerTEXTE der stdlib bewusst nicht mehr fest: unter
+// Go 1.27 trägt encoding/json v1 intern encoding/json/v2, die v1-Semantik
+// bleibt, die Wortlaute ändern sich ("in string literal" → "in string").
+// Geprüft wird stattdessen die Eigenschaft, um die es hier geht — beide
+// Politiken scheitern an derselben Zeile, und nur die Default-Form sieht das
+// CR überhaupt.
 func TestTrimCRPolicies(t *testing.T) {
 	// Unabgeschlossener String, letztes Byte vor dem Umbruch ist das CR.
 	const doc = "{\"n\":1}\n{\"s\":\"b\r\n"
 
-	_, _, err := collect(t, doc)
-	if got, want := err.Error(), "doc:2: invalid character '\\r' in string literal"; got != want {
-		t.Errorf("Default (strings.Split-Form):\n  ist      %q\n  erwartet %q", got, want)
+	_, _, errDefault := collect(t, doc)
+	if errDefault == nil {
+		t.Fatal("Default (strings.Split-Form): kaputte Zeile muss scheitern")
+	}
+	_, _, errTrim := collect(t, doc, jsonl.TrimCR(true))
+	if errTrim == nil {
+		t.Fatal("TrimCR (ScanLines-Form): kaputte Zeile muss scheitern")
 	}
 
-	_, _, err = collect(t, doc, jsonl.TrimCR(true))
-	if got, want := err.Error(), "doc:2: unexpected end of JSON input"; got != want {
-		t.Errorf("TrimCR (ScanLines-Form):\n  ist      %q\n  erwartet %q", got, want)
+	// Unsere eigene Zeilenmarke ist die stabile Hälfte der Meldung.
+	for _, c := range []struct {
+		name string
+		err  error
+	}{{"Default", errDefault}, {"TrimCR", errTrim}} {
+		if !strings.HasPrefix(c.err.Error(), "doc:2: ") {
+			t.Errorf("%s: %q trägt nicht die Zeilenmarke doc:2:", c.name, c.err)
+		}
+	}
+
+	// Der Unterschied der beiden Politiken ist genau das CR: der Default
+	// reicht es an den Parser durch, TrimCR schneidet es ab.
+	if !strings.Contains(errDefault.Error(), `'\r'`) {
+		t.Errorf("Default: %q nennt das CR nicht — die Zeile sollte es mitbringen", errDefault)
+	}
+	if strings.Contains(errTrim.Error(), `'\r'`) {
+		t.Errorf("TrimCR: %q nennt das CR — es sollte abgeschnitten sein", errTrim)
 	}
 }
 

@@ -7,7 +7,7 @@ RUN bun install --frozen-lockfile
 COPY web/ .
 RUN bun run check && bun run build
 
-FROM golang:1.26-alpine AS build
+FROM golang:1.27-alpine AS build
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download

@@ -3,7 +3,7 @@
 > Knowledge store with weighted 4-way RRF retrieval, multi-tenant scope isolation, multi-dimensional cyclic temporal gravity, and autonomous cross-referencing. Built for AI workflows that need to remember.
 
 [![Release](https://img.shields.io/github/v/release/GottZ/ctx)](https://github.com/GottZ/ctx/releases)
-[![Go](https://img.shields.io/badge/Go-1.26-00ADD8)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.27-00ADD8)](https://go.dev)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue)](LICENSE)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-336791)](https://www.postgresql.org)
 

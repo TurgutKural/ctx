@@ -1,6 +1,6 @@
 # Architecture
 
-**Stack:** Go 1.26 (matches `go.mod` and the `golang:1.26-alpine` build image), PostgreSQL 18 + pgvector 0.8.2, 84 SQL migrations (numbered 001–086; 066 is the deliberately deferred tenant-OAuth slot, 082 is the reserved W13 webhook slot). Dual-protocol inference (Ollama native or OpenAI-compatible) via any provider — configured per role in the [backend pool](#backend-pool-f3-migrations-053055) (`ctx backends`), one row per backend (see [operations](operations.md#backends)).
+**Stack:** Go 1.27 (matches `go.mod` and the `golang:1.27-alpine` build image), PostgreSQL 18 + pgvector 0.8.2, 84 SQL migrations (numbered 001–086; 066 is the deliberately deferred tenant-OAuth slot, 082 is the reserved W13 webhook slot). Dual-protocol inference (Ollama native or OpenAI-compatible) via any provider — configured per role in the [backend pool](#backend-pool-f3-migrations-053055) (`ctx backends`), one row per backend (see [operations](operations.md#backends)).
 
 ## Pipelines at a glance
 
