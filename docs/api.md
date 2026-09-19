@@ -2,6 +2,13 @@
 
 All endpoints under `/api/*`. Auth via `X-Context-Key` header or `Authorization: Bearer` token.
 
+**Request header limit:** ctxd parses at most **100 header values** per request and answers
+`431 Request Header Fields Too Large` above that, before the handler runs (`cmd/ctxd/main.go`,
+`maxHeaderValueCount`). The cap counts *values*, not lines — comma-separated values inside one
+header line count once, the same header name sent as N lines counts N times. A browser behind a
+reverse proxy carries roughly 25, so only a client that fans a header out into dozens of lines can
+hit it. Not a settings key: changing it is a rebuild, deliberately.
+
 ## Endpoints
 
 | Endpoint | Description |

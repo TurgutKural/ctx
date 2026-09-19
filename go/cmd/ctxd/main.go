@@ -797,14 +797,7 @@ func main() {
 	// snapshot (== env value; the settings overlay rejects restart-only keys).
 	listenAddr := cfgStore.Snapshot().Server.ListenAddr //nolint:forbidigo // MT 06 BLIND: restart-only server.listen_addr is a process-global env value (the overlay rejects restart-only keys), read once at boot.
 	router := NewRouter(ctx, pool, cfgStore, scheduler, backendPool, blocktypeReg, projectHub, dispatcher)
-	srv := &http.Server{
-		Addr:              listenAddr,
-		Handler:           router,
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      120 * time.Second,
-		IdleTimeout:       60 * time.Second,
-	}
+	srv := newHTTPServer(listenAddr, router)
 
 	// Start HTTP server in background
 	errCh := make(chan error, 1)
@@ -842,4 +835,37 @@ func main() {
 
 	// Pool is closed via defer above.
 	slog.Info("shutdown complete")
+}
+
+// maxHeaderValueCount is the per-request cap on header VALUES that ctxd will
+// parse. Go 1.27 introduced the knob and gave it a default of 500
+// (net/http.DefaultMaxHeaderValueCount); before that a request was bounded
+// only by MaxHeaderBytes, so ~1 MB of four-byte headers all got parsed.
+//
+// 100 instead of the default for two reasons. First, the number should be a
+// decision in this file, not a stdlib constant that moves under us on a Go
+// release — the same reasoning that pins golangci-lint and deadcode in CI.
+// Second, ctxd answers from the open internet (REST, MCP, OAuth, SPA) and
+// none of its clients come near 100 header values: a browser request behind a
+// reverse proxy carries roughly 25, an MCP client fewer, curl a handful. The
+// headroom is 4x over the loudest real caller and 5x below the stdlib default.
+//
+// Over the cap the server answers 431 before the handler runs. Note the
+// stdlib's counting rule: comma-separated values inside ONE header line count
+// once, the same header sent as N lines counts N times.
+const maxHeaderValueCount = 100
+
+// newHTTPServer builds the daemon's HTTP server. It is a function rather than
+// a literal in main so the transport policy — timeouts and header caps — has a
+// witness that needs neither a database nor a boot.
+func newHTTPServer(addr string, h http.Handler) *http.Server {
+	return &http.Server{
+		Addr:                addr,
+		Handler:             h,
+		ReadHeaderTimeout:   10 * time.Second,
+		ReadTimeout:         30 * time.Second,
+		WriteTimeout:        120 * time.Second,
+		IdleTimeout:         60 * time.Second,
+		MaxHeaderValueCount: maxHeaderValueCount,
+	}
 }
