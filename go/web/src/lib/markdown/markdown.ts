@@ -47,8 +47,12 @@ md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
   const token = tokens[idx]
   const i = token.attrIndex('href')
   if (i >= 0 && token.attrs) {
+    // markdown-it 15 ships its own types: an attribute value is
+    // `string | number` there (TokenAttribute), not `string`. A numeric href
+    // can only come from a plugin that sets one — it is never a ctx: citation,
+    // so it passes through untouched instead of being coerced or rejected.
     const href = token.attrs[i][1]
-    if (href.startsWith('ctx:')) {
+    if (typeof href === 'string' && href.startsWith('ctx:')) {
       token.attrs[i][1] = `/graph?focus=${encodeURIComponent(href.slice(4))}`
     }
   }

@@ -166,6 +166,37 @@ describe('renderMarkdown — foreign-origin link hardening (§4.4.1)', () => {
   })
 })
 
+describe('renderMarkdown — linkify semantics (markdown-it 15 / linkify-it 6)', () => {
+  // markdown-it 15 pulled linkify-it to v6, which turns FUZZY links off by
+  // default and stops swallowing an auth part into the URL. We run
+  // `linkify: true` (markdown.ts:39) on foreign input, so the change is
+  // content-visible and pinned here — measured against 14.3.0 and 15.0.2, not
+  // read off a changelog.
+  it('still linkifies an explicit scheme and a bare mail address', () => {
+    const url = parse(renderMarkdown('see https://example.com/auto')).querySelector('a')
+    expect(url?.getAttribute('href')).toBe('https://example.com/auto')
+    const mail = parse(renderMarkdown('mail me at user@example.com')).querySelector('a')
+    expect(mail?.getAttribute('href')).toBe('mailto:user@example.com')
+  })
+
+  it('no longer invents http:// for a schemeless host (fuzzy links off)', () => {
+    // 14.3.0 rendered <a href="http://example.com">; a plaintext host now stays
+    // plaintext. Fewer silently downgraded http links out of quoted content.
+    expect(parse(renderMarkdown('visit example.com for more')).querySelector('a')).toBeNull()
+    expect(parse(renderMarkdown('go to www.example.com now')).querySelector('a')).toBeNull()
+  })
+
+  it('stops at the auth part instead of linkifying credentials into the href', () => {
+    // 14.3.0 made the whole `https://user:pw@example.com/x` one anchor. The
+    // link now ends before the colon and the rest stays text — the
+    // credential-carrying href is gone, the remainder is visibly not a link.
+    const root = parse(renderMarkdown('https://user:pw@example.com/x'))
+    const a = root.querySelector('a')
+    expect(a?.getAttribute('href')).toBe('https://user')
+    expect(root.textContent).toContain(':pw@example.com/x')
+  })
+})
+
 describe('renderMarkdown — remote-image placeholder (§4.4.3, E04-9)', () => {
   it('replaces a foreign-origin image with a text placeholder carrying the URL', () => {
     const root = parse(renderMarkdown('![screenshot](https://evil.example/pixel.png)'))
