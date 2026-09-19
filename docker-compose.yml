@@ -582,7 +582,7 @@ services:
   # pair longer than the batch kills the server PROCESS (not a graceful
   # error), so ctx-size/batch must stay >= that clamp in tokens.
   ctx-rerank:
-    image: ghcr.io/ggml-org/llama.cpp:server
+    image: ghcr.io/ggml-org/llama.cpp:server-b10331@sha256:5a7d34c5a378b6f3b542e71690bd82db7b5bf31fd77d9d1582cc7f2c9043ad8c
     container_name: ctx-rerank
     restart: unless-stopped
     mem_limit: 4g
@@ -633,7 +633,7 @@ services:
   # num_ctx, query prompts are ≤10k tokens. --threads 10 leaves headroom for
   # PG + ctx on the 12-thread host. Idle cost ≈ 0 (mmap'd weights, no compute).
   llama-cpu:
-    image: ghcr.io/ggml-org/llama.cpp:server
+    image: ghcr.io/ggml-org/llama.cpp:server-b10331@sha256:5a7d34c5a378b6f3b542e71690bd82db7b5bf31fd77d9d1582cc7f2c9043ad8c
     container_name: llama-cpu
     restart: unless-stopped
     volumes:
