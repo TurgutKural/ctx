@@ -84,7 +84,7 @@ bash deadcode.sh testonly           # Test-only ratchet against go/deadcode-test
 cd go && go test ./... -short       # Go unit tests
 ```
 
-`deadcode.sh` needs `go install golang.org/x/tools/cmd/deadcode@v0.49.0` (the same
+`deadcode.sh` needs `go install golang.org/x/tools/cmd/deadcode@v0.50.0` (the same
 pin the CI `lint` job installs). It also runs from `.hooks/pre-push` — as a hint,
 not a block, when the tool is missing locally. CI is the authority.
 

@@ -73,7 +73,7 @@ PKGS=(./cmd/... ./internal/... ./migrations/...)
 
 if ! command -v deadcode >/dev/null 2>&1; then
     echo "$LABEL: deadcode not found in PATH."
-    echo "  install: go install golang.org/x/tools/cmd/deadcode@v0.49.0"
+    echo "  install: go install golang.org/x/tools/cmd/deadcode@v0.50.0"
     if [[ -n "${CI:-}" ]]; then
         # In CI a missing tool must not pass as a green gate — CI is the
         # authority (the local hook is only the early warning).
