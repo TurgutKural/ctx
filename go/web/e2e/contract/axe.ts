@@ -53,6 +53,38 @@ export async function runAxeGate(
   viewport: ViewportName,
   testInfo: TestInfo,
 ): Promise<void> {
+  // Settle entrance animations BEFORE measuring. `color-contrast` is computed
+  // against the COMPOSITED rendering, and src/Login.svelte:141-159 ramps every
+  // `.card` child from `opacity: 0` over 0.35 s (staggered 0/60/120 ms). The
+  // mount assertion in contract.ts (`toBeVisible()`) is already satisfied at
+  // opacity 0, so axe could scan mid-ramp and report a reduced contrast ratio
+  // on whichever children it happened to catch — exactly the observed
+  // non-determinism (1 vs. 5 violations on the same page in the same run;
+  // three red nightly CI runs 11./12./18.09., measured here at 10/120 with
+  // --repeat-each=30).
+  //
+  // Deterministic settle instead of a fixed wait: await the Web Animations
+  // `finished` promise of every finite, running animation. Two exclusions are
+  // load-bearing, not cosmetic:
+  //   - INFINITE animations never settle (the Wordmark caret on THIS page,
+  //     src/Wordmark.svelte:35, plus the chat typing dots and the saturation
+  //     pulse) — awaiting them would hang every axe test into its timeout.
+  //   - PAUSED animations likewise; `finished` only resolves while playing.
+  // `finished` rejects when an animation is cancelled mid-flight, which is not
+  // a gate failure — hence the per-animation catch.
+  //
+  // This lives in the gate, not in mountState: it is a precondition of the
+  // MEASUREMENT (any page with an entrance animation), while the visual and
+  // ARIA dimensions carry their own settle (contract.ts:280, :293).
+  await page.evaluate(async () => {
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => undefined)),
+    )
+  })
+
   let builder = new AxeBuilder({ page }).options({
     // ONE call: runOnly + rules together — see the API trap in the header.
     runOnly: { type: 'tag', values: [...AXE_TAGS] },
