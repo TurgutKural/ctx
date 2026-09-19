@@ -138,8 +138,22 @@ jobs:
             echo "chmod +x ctx-*"
             echo "sudo mv ctx-* /usr/local/bin/ctx"
             echo '```'
+            echo ""
+            echo "**Verify the download:**"
+            echo '```bash'
+            echo "sha256sum -c --ignore-missing SHA256SUMS"
+            echo '```'
             echo "RELEASE_NOTES_EOF"
           } >> "$GITHUB_OUTPUT"
+
+      # Prüfsummen (Sweep 2026-09-19): die Binaries lagen ohne Integritätsanker
+      # im Release. SHA256SUMS entsteht NACH dem Download aller Plattform-
+      # Artefakte und wird mit hochgeladen (files: dist/*).
+      - name: Generate SHA256SUMS
+        run: |
+          cd dist
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
