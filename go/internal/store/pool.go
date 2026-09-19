@@ -51,6 +51,29 @@ func logPgNotice(_ *pgconn.PgConn, n *pgconn.Notice) {
 	}
 }
 
+// tunePool applies the explicit pool sizing and health-check policy. It sits
+// apart from NewPool so the policy has a witness that needs no database.
+func tunePool(config *pgxpool.Config) {
+	config.MaxConns = 20
+	config.MinConns = 2
+	config.HealthCheckPeriod = 30 * time.Second
+	config.MaxConnLifetime = 30 * time.Minute
+	config.MaxConnIdleTime = 5 * time.Minute
+
+	// PingTimeout (neu in pgx v5.11.0) begrenzt den Health-Ping, den Acquire
+	// auf einer länger ungenutzten Connection fährt. Der Default ist 0 und
+	// bedeutet KEIN Timeout: der Ping erbt dann allein den Context des
+	// Aufrufers, und eine halbtote Verbindung — TCP offen, Gegenstelle weg,
+	// kein RST — hält den Acquire so lange fest, wie dieser Context läuft.
+	// Bei MaxConns 20 ist das ein Head-of-Line-Block für den ganzen Pool:
+	// jeder wartende Acquire steht hinter demselben stillen Socket, und der
+	// Ausfall sieht aus wie Langsamkeit, nicht wie ein Fehler. 5 s liegt weit
+	// über jedem gesunden Ping auf der Container-internen Verbindung und weit
+	// unter den Fristen, die ein Request mitbringt; nach Ablauf zerstört pgx
+	// die Connection und der nächste Versuch läuft auf einer frischen.
+	config.PingTimeout = 5 * time.Second
+}
+
 // NewPool creates a pgxpool with pgvector type registration on each connection.
 // It retries connecting up to 10 times with exponential backoff (1s, 2s, 4s, ...),
 // which handles container startup ordering when the database is not yet ready.
@@ -75,12 +98,7 @@ func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	// explicit RAISE, i.e. from the migration phase of a boot.
 	config.ConnConfig.OnNotice = logPgNotice
 
-	// Explicit pool sizing and health check configuration.
-	config.MaxConns = 20
-	config.MinConns = 2
-	config.HealthCheckPeriod = 30 * time.Second
-	config.MaxConnLifetime = 30 * time.Minute
-	config.MaxConnIdleTime = 5 * time.Minute
+	tunePool(config)
 
 	const maxRetries = 10
 	backoff := 1 * time.Second

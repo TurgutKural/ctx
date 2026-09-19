@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // pool.go has no pure functions — NewPool and sleepCtx both depend on
@@ -124,5 +125,32 @@ func TestSleepCtx_ZeroDuration(t *testing.T) {
 	err := sleepCtx(ctx, 0)
 	if err != nil {
 		t.Errorf("expected nil error for zero-duration sleep, got %v", err)
+	}
+}
+
+// TestTunePoolPingTimeout hält die eine Einstellung fest, deren Default ein
+// Hänger ist: pgxpool.Config.PingTimeout steht ab Werk auf 0 und bedeutet
+// dann KEIN Timeout für den Acquire-Health-Ping. Der Test prüft beide Seiten —
+// dass der Default wirklich noch 0 ist (sonst ist unsere Begründung veraltet)
+// und dass tunePool ihn auf eine endliche Frist setzt.
+func TestTunePoolPingTimeout(t *testing.T) {
+	config, err := pgxpool.ParseConfig("postgres://user:pass@127.0.0.1:5432/db")
+	if err != nil {
+		t.Fatalf("ParseConfig: %v", err)
+	}
+	if config.PingTimeout != 0 {
+		t.Errorf("pgx-Default PingTimeout = %v, erwartet 0 — die Begründung in tunePool prüfen", config.PingTimeout)
+	}
+
+	tunePool(config)
+
+	if config.PingTimeout != 5*time.Second {
+		t.Errorf("PingTimeout = %v, erwartet 5s", config.PingTimeout)
+	}
+	if config.MaxConns != 20 || config.MinConns != 2 {
+		t.Errorf("MaxConns/MinConns = %d/%d, erwartet 20/2", config.MaxConns, config.MinConns)
+	}
+	if config.HealthCheckPeriod != 30*time.Second {
+		t.Errorf("HealthCheckPeriod = %v, erwartet 30s", config.HealthCheckPeriod)
 	}
 }
