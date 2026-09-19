@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
-	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/muesli/termenv v0.16.0
 	github.com/pashagolub/pgxmock/v5 v5.2.0
 	github.com/pgvector/pgvector-go v0.4.1
