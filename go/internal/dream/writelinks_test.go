@@ -9,7 +9,7 @@ import (
 	"github.com/GottZ/ctx/internal/blocktype"
 	"github.com/GottZ/ctx/internal/pgxdb"
 	"github.com/jackc/pgx/v5"
-	"github.com/pashagolub/pgxmock/v4"
+	"github.com/pashagolub/pgxmock/v5"
 )
 
 // --- Test fixtures ---.
