@@ -102,11 +102,34 @@ func jwkToPublicKey(key JWK) (any, error) {
 		if err != nil {
 			return nil, fmt.Errorf("oidc: decoding JWK y: %w", err)
 		}
-		return &ecdsa.PublicKey{
-			Curve: curve,
-			X:     new(big.Int).SetBytes(xBytes),
-			Y:     new(big.Int).SetBytes(yBytes),
-		}, nil
+		// ecdsa.PublicKey.X/.Y direkt zu befüllen ist seit Go 1.26
+		// deprecated (SA1019) — und zwar aus einem Sachgrund: ein so
+		// gebauter Key kann einen Punkt tragen, der gar nicht auf der
+		// Kurve liegt. Hier kommen die Koordinaten aus einem FREMDEN
+		// JWKS-Dokument, also genau aus der Quelle, der man das nicht
+		// glauben darf. ParseUncompressedPublicKey prüft die
+		// Kurvenzugehörigkeit und lehnt ungültige Punkte ab.
+		//
+		// RFC 7518 §6.2.1.2 verlangt für x und y die volle
+		// Koordinatenlänge der Kurve; Implementierungen in freier
+		// Wildbahn schneiden führende Nullbytes aber ab. Deshalb wird
+		// links auf die feste Länge aufgefüllt statt die kurze Form
+		// abzulehnen. Zu LANGE Koordinaten sind dagegen ein Fehler —
+		// sie stillschweigend zu kürzen hieße, einen anderen Key zu
+		// akzeptieren als den gesendeten.
+		coordLen := (curve.Params().BitSize + 7) / 8
+		if len(xBytes) > coordLen || len(yBytes) > coordLen {
+			return nil, fmt.Errorf("oidc: JWK coordinate exceeds %d bytes for curve %s", coordLen, key.Crv)
+		}
+		point := make([]byte, 1+2*coordLen)
+		point[0] = 4 // uncompressed point marker (SEC 1 §2.3.3)
+		copy(point[1+coordLen-len(xBytes):], xBytes)
+		copy(point[1+2*coordLen-len(yBytes):], yBytes)
+		pub, err := ecdsa.ParseUncompressedPublicKey(curve, point)
+		if err != nil {
+			return nil, fmt.Errorf("oidc: invalid JWK EC point: %w", err)
+		}
+		return pub, nil
 	default:
 		return nil, fmt.Errorf("oidc: unsupported key type: %s", key.Kty)
 	}
