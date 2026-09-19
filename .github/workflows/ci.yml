@@ -65,7 +65,17 @@ jobs:
           # scharf und rötete drei unveränderte Test-Dateien — Lint-Wahrheit
           # muss lokal (pre-commit, Agenten-Gates) und CI dieselbe sein.
           # Bump = bewusster Commit, nie ein stiller Action-Download.
-          version: v2.11.4
+          #
+          # Bump auf v2.13.2 (2026-09-19, Dependency-Sweep): v2.13.0 bringt
+          # staticcheck 0.8.0, das zwei echte SA1019-Funde in
+          # go/internal/oidc/verify.go hatte (deprecated ecdsa.PublicKey.X/.Y
+          # auf dem JWK-Pfad) — im selben Zug behoben, sonst wäre der Bump ein
+          # roter Job statt eines Pins. v2.13 ist zugleich die Voraussetzung
+          # für Go 1.27: golangci-lint lintet nur Go-Versionen bis zu der, mit
+          # der es selbst gebaut wurde, und v2.11.4 bricht gegen ein Modul mit
+          # `go 1.27.0` mit "the Go language version used to build
+          # golangci-lint is lower than the targeted Go version" ab.
+          version: v2.13.2
           working-directory: go
           args: --timeout=5m
           # Kein Analyse-Cache (2026-08-26): der Cache-Key der Action trägt das
