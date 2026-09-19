@@ -1,9 +1,16 @@
 # pgvector + TimescaleDB on PostgreSQL 18 (Debian trixie)
-# Base: pgvector/pgvector:0.8.5-pg18-trixie (includes pgvector extension)
+# Base: pgvector/pgvector:0.8.6-pg18-trixie (includes pgvector extension)
 # Added: TimescaleDB from packagecloud timescale/timescaledb repo
-# pgvector fest auf 0.8.5 gepinnt (E-01-4): 0.8.3+ fixt die PG18-Distanz-Regression
-# und die HNSW-Vacuum-Korruption; recall_check (Mig 110) erwartet 0.8.5 als Baseline.
-FROM pgvector/pgvector:0.8.5-pg18-trixie
+# pgvector fest gepinnt (E-01-4): 0.8.3+ fixt die PG18-Distanz-Regression und die
+# HNSW-Vacuum-Korruption. 0.8.6 (Sweep 2026-09-19) bringt nur IVFFlat-/sparsevec-
+# Fixes, die wir nicht nutzen — der Bump hält den Rückstand bei null. recall_check
+# stempelt die pgvector-Version je Lauf (recall.go), ein Versionswechsel ist dort
+# als Drift-Marker sichtbar, kein Gate.
+# Digest-Pin: der Tag allein floatet die PostgreSQL-Minor mit (18.4 → 18.6 bei
+# unverändertem Dockerfile gemessen). Tag bleibt als lesbares Label stehen; beim
+# Bump Tag UND Digest gemeinsam ändern
+# (`docker buildx imagetools inspect <tag> --format '{{.Manifest.Digest}}'`).
+FROM pgvector/pgvector:0.8.6-pg18-trixie@sha256:78bf48b801e792f99e3ac62b5036fd3876e9be48afda16c1e331af1c75ceb2ff
 
 # TimescaleDB fest gepinnt (Dependency-Sweep 2026-09-19): ohne Versionsangabe zog
 # ein Rebuild des unveränderten Dockerfiles 2.28.3 → 2.30.1 (gemessen). TimescaleDB
