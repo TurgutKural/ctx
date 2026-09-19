@@ -18,7 +18,7 @@
     Vector3,
     WebGLRenderer,
   } from 'three'
-  // three@0.185.1 exportiert `./addons/*` → examples/jsm (package.json exports,
+  // three@0.186.0 exportiert `./addons/*` → examples/jsm (package.json exports,
   // @types/three spiegelt das Mapping) — löst mit moduleResolution "bundler"
   // UND Vite ohne Alias-Konfiguration auf.
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
